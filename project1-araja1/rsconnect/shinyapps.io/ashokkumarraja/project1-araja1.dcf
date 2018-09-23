@@ -1,0 +1,13 @@
+name: project1-araja1
+title: project1-araja1
+username:
+account: ashokkumarraja
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 464197
+bundleId: 1600761
+url: https://ashokkumarraja.shinyapps.io/project1-araja1/
+when: 1537718364.40838
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: FDA_Orange_Book.csv

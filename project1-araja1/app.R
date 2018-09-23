@@ -12,65 +12,87 @@ library(dplyr)
 library(plyr)
 library(plotly)
 library(tibble)
+library(shinydashboard)
+library(reshape2)
+library(shinythemes)
 
 
 
 # Fetching the dataset fda Orange Book  into fda
-fda=read.csv("FDA_Orange_Book.csv")
+fda=read.csv("FDA_Orange_Book-Mylan.csv")
 fda$Approval_Date <- as.Date(fda$Approval_Date, format = "%m/%d/%Y")
 fda$Approval_Year <- as.numeric(format(as.Date(fda$Approval_Date, format="%d/%m/%Y"),"%Y"))
 fda$Patent_Expire_Date <- as.Date(fda$Patent_Expire_Date_Text, format = "%m/%d/%Y")
 fda$Patent_Expire_Year <- as.numeric(format(as.Date(fda$Patent_Expire_Date, format="%d/%m/%Y"),"%Y"))
 fda.load = fda
 
-# Define UI for application 
-ui <- navbarPage("FDA Drugs",
-                 # Main tab panel to switch between graphs and data 
-                 tabPanel("Plot",
-                          sidebarPanel(
-                            # Selecting the Drug in a selection box
-                            selectInput("prod_select",
-                                        "Drug:",
-                                        choices = fda$Trade_Name,
-                                        multiple = TRUE,
-                                        selectize = TRUE
-                            ),
-                            # Selecting the Drug Applicant in a selection box
-                            selectInput("applicant_select",
-                                        "Applicant:",
-                                        choices = fda$Applicant,
-                                        multiple = FALSE,
-                                        selected="MYLAN PHARMS INC"
-                            ),
-                            #selecting the Approval Date using a slider
-                            sliderInput("year_select",
-                                        "Approval Year:",
-                                        min = min(fda$Approval_Year, na.rm = T),
-                                        max = max(fda$Approval_Year, na.rm = T),
-                                        value = c(min(fda$Approval_Year, na.rm = T), max(fda$Approval_Year, na.rm = T)),
-                                        step = 1
-                            ),
-                            #selecting the Application Type
-                            checkboxGroupInput("app_select",
-                                               "Application Type:",
-                                               choices = levels(fda$Appl_Type),
-                                               selected=1
-                            )
-                            
-                          ),
-                          # Main panel with the 3 graphs
-#                          mainPanel(plotlyOutput("plot"),plotlyOutput("plot2"),plotlyOutput("plot3") )
-                          mainPanel(plotlyOutput("plot"),plotlyOutput("plot2"),plotlyOutput("plot3") )
-                 ),
-                 # Data Panel
-                 tabPanel("Data",
-                          inputPanel(
-                            # Download Button
-                            downloadButton("downloadData","Download Orange Book")
-                          ),
-                          fluidPage(dataTableOutput("table")) 
-                 )
+
+header <- dashboardHeader(title = "FDA Orange Book")
+
+sidebar <- dashboardSidebar(
+  sidebarMenu(
+    id = "tabs",
+    menuItem("Plot", icon = icon("bar-chart"), tabName = "plot"),
+    menuItem("Table", icon = icon("table"), tabName = "table"),
+    selectInput("prod_select",
+                "Drug:",
+                choices = fda$Trade_Name,
+                multiple = TRUE,
+                selectize = TRUE
+    ),
+    # Selecting the Drug Applicant in a selection box
+    selectInput("applicant_select",
+                "Applicant:",
+                choices = fda$Applicant,
+                multiple = FALSE,
+                selected="MYLAN PHARMS INC"
+    ),
+    #selecting the Approval Date using a slider
+    sliderInput("year_select",
+                "Approval Year:",
+                min = min(fda$Approval_Year, na.rm = T),
+                max = max(fda$Approval_Year, na.rm = T),
+                value = c(min(fda$Approval_Year, na.rm = T), max(fda$Approval_Year, na.rm = T)),
+                step = 1
+    ),
+    #selecting the Application Type
+    checkboxGroupInput("app_select",
+                       "Application Type:",
+                       choices = levels(fda$Appl_Type),
+                       selected=1
+    )
+  )
 )
+
+
+
+body <- dashboardBody(tabItems(
+  tabItem("plot",
+          fluidRow(
+            # info anf value boxes - note- Applicants os fo the entire data set and is intentionally hnot filtered by selection
+            infoBoxOutput("applicants"),
+            valueBoxOutput("products"),
+            valueBoxOutput("patents")
+          ),
+          fluidRow(
+            # Rendering the 3 differnt plots in tabs
+            tabBox(title = "Plot",
+                   width = 12,
+                   tabPanel("Approvals", plotlyOutput("plot")),
+                   tabPanel("Patents", plotlyOutput("plot2")),
+                   tabPanel("Route and TE", plotlyOutput("plot3")))
+          )
+  ),
+  tabItem("table",
+          # Rendering the table
+          fluidPage(
+            box(title = "Orange Book Data", DT::dataTableOutput("table"), width=300))
+  )
+)
+)
+
+# passing the ui to the dashboard
+ui <- dashboardPage(header, sidebar, body)
 
 # Define server logic 
 server <- function(input, output, session=session) 
@@ -96,7 +118,7 @@ server <- function(input, output, session=session)
   })
   
   
-  # Plot the amount reimbursed by quarter
+  # Plot for approved applicatnion by year
   output$plot <- renderPlotly({
     fda=swInput()
     ggplotly(ggplot(data=fda,aes(x=Approval_Year,colour=Type))+
@@ -104,7 +126,7 @@ server <- function(input, output, session=session)
                labs(title="Drug Approval Timeline",x="Approval Date",y="# of Approvals",colour="Type")
     )
   })
-  # Plot the Units and AMount
+  # Plot the upcomgin aptent expiry
   output$plot2 <- renderPlotly({
     fda=swInput()
     ggplotly(ggplot(data=fda,aes(x=Patent_Expire_Year))+
@@ -113,26 +135,49 @@ server <- function(input, output, session=session)
              
     )
   })
-  # Plot the Product and amount
+  # Plot the administration route and therapeutic equivalent
   output$plot3 <- renderPlotly({
-    mdrp=swInput()
-    ggplotly(ggplot(data=mdrp,aes(x=Route,colour=TE_Code))+
+    fda=swInput()
+    ggplotly(ggplot(data=fda,aes(x=Route,colour=TE_Code))+
                geom_bar()+ coord_flip()+
                labs(title="# Drugs by Administration route by Therapeutic Equivalent",x="Administration Route",y="# of Products",colour="Thearpeutic Equivalent")
     )
   })
   # Data table 
-  output$table <- renderDataTable(fda)
+  output$table <- DT::renderDataTable(fda <-swInput(), options = list(scrollX = TRUE))
   # Download function
-  output$downloadData <- downloadHandler(
-    filename = function() {
-      paste("download", ".csv", sep = "")
-    },
-    content = function(file) {
-      write.csv(fda, file)
-    }
-  )   
+  
 
+
+  
+    # Toal Applicants info box- not filtered intentionally
+  output$applicants <- renderInfoBox({
+    num <- length(unique(fda.load$Applicant))
+    
+    infoBox("Total # Applicants", value = num, icon = icon("balance-scale"), color = "purple")
+   
+  })
+
+  # Total products per selection
+  output$products <- renderValueBox({
+    fda=swInput()
+    num <- length(unique(fda$Trade_Name))
+    
+    valueBox(subtitle = "Products for selection", value = num, icon = icon("sort-numeric-asc"), color = "green")
+    
+    
+  }) 
+  
+  # Total patents per selection
+  output$patents <- renderValueBox({
+    fda=swInput()
+    num <- length(unique(fda$Patent_No))
+    
+    valueBox(subtitle = "Patents per selection", value = num, icon = icon("sort-numeric-asc"), color = "red")
+    
+    
+  }) 
+  
 }
 
 
