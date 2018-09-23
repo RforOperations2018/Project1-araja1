@@ -2,8 +2,9 @@
 # Name: Ashok Raja
 # Project # 1
 # Andrew ID: araja1
-# Dataset used was the FDA Orange book which contains the list of drug applications 
+# Dataset used was the FDA Orange book which contains the list of drug applications - filtered for Mylan due to size limitations
 # link to data : https://www.fda.gov/downloads/Drugs/InformationOnDrugs/UCM163762.zip
+# Shiny app online link : https://ashokkumarraja.shinyapps.io/project1-araja1/
 
 # Loading libraries
 
