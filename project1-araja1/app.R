@@ -18,7 +18,7 @@ library(tibble)
 # Fetching the dataset fda Orange Book  into fda
 fda=read.csv("FDA_Orange_Book.csv")
 fda$Approval_Date <- as.Date(fda$Approval_Date, format = "%m/%d/%Y")
-fda$Approval
+fda$Approval_Year <- as.numeric(format(as.Date(fda$Approval_Date, format="%d/%m/%Y"),"%Y"))
 fda.load = fda
 
 # Define UI for application 
@@ -34,11 +34,11 @@ ui <- navbarPage("FDA Drugs",
                                         selectize = TRUE
                             ),
                             #selecting the Approval Date using a slider
-                            sliderInput("date_select",
-                                        "Approval Date:",
-                                        min = min(fda$Approval_Date, na.rm = T),
-                                        max = max(fda$Approval_Date, na.rm = T),
-                                        value = c(min(fda$Approval_Date, na.rm = T), max(fda$Approval_Date, na.rm = T)),
+                            sliderInput("year_select",
+                                        "Approval Year:",
+                                        min = min(fda$Approval_Year, na.rm = T),
+                                        max = max(fda$Approval_Year, na.rm = T),
+                                        value = c(min(fda$Approval_Year, na.rm = T), max(fda$Approval_Year, na.rm = T)),
                                         step = 1
                             ),
                             #selecting the Application Type
@@ -67,39 +67,39 @@ ui <- navbarPage("FDA Drugs",
 server <- function(input, output, session=session) 
 {
   # Caputing the inputs for reactive functions
-#  swInput <- reactive({
-#    fda=fda.load %>%
+  swInput <- reactive({
+    fda=fda.load %>%
       # Filtering the slider for Approval Dates
-#      filter(Approval_Date >=input$date_select[1] & Approval_Date <= input$date_select[2])
+      filter(Approval_Year >=input$year_select[1] & Approval_Year <= input$year_select[2])
     # Filtering the products selected
-#    if(length(input$prod_select)>0){
-#      fda <- subset(fda, Trade_Name %in% input$prod_select)
-#    }
+    if(length(input$prod_select)>0){
+      fda <- subset(fda, Trade_Name %in% input$prod_select)
+    }
     #Filtering the utilization type
-#    if(length(input$app_select)>0){
-#      fda <- subset(fda, Appl_Type %in% input$app_select)  
-#    }
-#    return(fda)
-#  })
+    if(length(input$app_select)>0){
+      fda <- subset(fda, Appl_Type %in% input$app_select)  
+    }
+    return(fda)
+  })
   
   
   # Plot the amount reimbursed by quarter
   output$plot <- renderPlotly({
-#    fda=swInput()
+    fda=swInput()
     ggplotly(ggplot(data=fda,aes(x=Type))+
                geom_bar()+
                labs(title="Drug Approval Timeline",x="Approval Date",y="# of Approvals",colour="Application Type")
     )
   })
   # Plot the Units and AMount
-#  output$plot2 <- renderPlotly({
-#    fda=swInput()
-#    ggplotly(ggplot(data=fda,aes(x=Units,y=Prescriptions,colour=Quarter,text=paste("<b>", Product.Name, ":</b> ")))+
-#               geom_point()+
-#               labs(title="Total Amount Reimbursed by Year",x="Units",y="Amount",colour="Quarter")
-#             ,tooltip="text"
-#    )
-#  })
+  output$plot2 <- renderPlotly({
+    fda=swInput()
+    ggplotly(ggplot(data=fda,aes(x=Units,y=Prescriptions,colour=Quarter,text=paste("<b>", Product.Name, ":</b> ")))+
+               geom_point()+
+               labs(title="Total Amount Reimbursed by Year",x="Units",y="Amount",colour="Quarter")
+             ,tooltip="text"
+    )
+  })
   # Plot the Product and amount
 #  output$plot3 <- renderPlotly({
 #    mdrp=swInput()
