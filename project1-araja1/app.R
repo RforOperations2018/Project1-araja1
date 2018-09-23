@@ -26,7 +26,7 @@ fda$Approval_Year <- as.numeric(format(as.Date(fda$Approval_Date, format="%d/%m/
 fda$Patent_Expire_Date <- as.Date(fda$Patent_Expire_Date_Text, format = "%m/%d/%Y")
 fda$Patent_Expire_Year <- as.numeric(format(as.Date(fda$Patent_Expire_Date, format="%d/%m/%Y"),"%Y"))
 fda.load = fda
-
+# Some day I'm gonna get you to use dplyr ;-)
 
 header <- dashboardHeader(title = "FDA Orange Book")
 
@@ -35,6 +35,7 @@ sidebar <- dashboardSidebar(
     id = "tabs",
     menuItem("Plot", icon = icon("bar-chart"), tabName = "plot"),
     menuItem("Table", icon = icon("table"), tabName = "table"),
+    # Where is my third page?!
     selectInput("prod_select",
                 "Drug:",
                 choices = fda$Trade_Name,
@@ -46,7 +47,7 @@ sidebar <- dashboardSidebar(
                 "Applicant:",
                 choices = fda$Applicant,
                 multiple = FALSE,
-                selected="MYLAN PHARMS INC"
+                selected="MYLAN PHARMS INC" # This default does not appear on shinyapps.io My guess is leading or trailing white space. When cleaning your data on load check out the trimws() function
     ),
     #selecting the Approval Date using a slider
     sliderInput("year_select",
@@ -55,12 +56,13 @@ sidebar <- dashboardSidebar(
                 max = max(fda$Approval_Year, na.rm = T),
                 value = c(min(fda$Approval_Year, na.rm = T), max(fda$Approval_Year, na.rm = T)),
                 step = 1
+                # Bah, there are commas in years!
     ),
     #selecting the Application Type
     checkboxGroupInput("app_select",
                        "Application Type:",
                        choices = levels(fda$Appl_Type),
-                       selected=1
+                       selected=1 # You need this to be the value, so I'm guessing "A"? If you want the first level put llevels(fda$Appl_Type)[1]
     )
   )
 )
