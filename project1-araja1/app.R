@@ -19,6 +19,8 @@ library(tibble)
 fda=read.csv("FDA_Orange_Book.csv")
 fda$Approval_Date <- as.Date(fda$Approval_Date, format = "%m/%d/%Y")
 fda$Approval_Year <- as.numeric(format(as.Date(fda$Approval_Date, format="%d/%m/%Y"),"%Y"))
+fda$Patent_Expire_Date <- as.Date(fda$Patent_Expire_Date_Text, format = "%m/%d/%Y")
+fda$Patent_Expire_Year <- as.numeric(format(as.Date(fda$Patent_Expire_Date, format="%d/%m/%Y"),"%Y"))
 fda.load = fda
 
 # Define UI for application 
@@ -32,6 +34,13 @@ ui <- navbarPage("FDA Drugs",
                                         choices = fda$Trade_Name,
                                         multiple = TRUE,
                                         selectize = TRUE
+                            ),
+                            # Selecting the Drug Applicant in a selection box
+                            selectInput("applicant_select",
+                                        "Applicant:",
+                                        choices = fda$Applicant,
+                                        multiple = FALSE,
+                                        selected="MYLAN PHARMS INC"
                             ),
                             #selecting the Approval Date using a slider
                             sliderInput("year_select",
@@ -51,7 +60,7 @@ ui <- navbarPage("FDA Drugs",
                           ),
                           # Main panel with the 3 graphs
 #                          mainPanel(plotlyOutput("plot"),plotlyOutput("plot2"),plotlyOutput("plot3") )
-                          mainPanel(plotlyOutput("plot") )
+                          mainPanel(plotlyOutput("plot"),plotlyOutput("plot2"),plotlyOutput("plot3") )
                  ),
                  # Data Panel
                  tabPanel("Data",
@@ -75,7 +84,11 @@ server <- function(input, output, session=session)
     if(length(input$prod_select)>0){
       fda <- subset(fda, Trade_Name %in% input$prod_select)
     }
-    #Filtering the utilization type
+    # Filtering the Applicants selected
+    if(length(input$applicant_select)>0){
+      fda <- subset(fda, Applicant %in% input$applicant_select)
+    }
+    #Filtering the Applicantion type
     if(length(input$app_select)>0){
       fda <- subset(fda, Appl_Type %in% input$app_select)  
     }
@@ -86,29 +99,28 @@ server <- function(input, output, session=session)
   # Plot the amount reimbursed by quarter
   output$plot <- renderPlotly({
     fda=swInput()
-    ggplotly(ggplot(data=fda,aes(x=Type))+
+    ggplotly(ggplot(data=fda,aes(x=Approval_Year,colour=Type))+
                geom_bar()+
-               labs(title="Drug Approval Timeline",x="Approval Date",y="# of Approvals",colour="Application Type")
+               labs(title="Drug Approval Timeline",x="Approval Date",y="# of Approvals",colour="Type")
     )
   })
   # Plot the Units and AMount
   output$plot2 <- renderPlotly({
     fda=swInput()
-    ggplotly(ggplot(data=fda,aes(x=Units,y=Prescriptions,colour=Quarter,text=paste("<b>", Product.Name, ":</b> ")))+
-               geom_point()+
-               labs(title="Total Amount Reimbursed by Year",x="Units",y="Amount",colour="Quarter")
-             ,tooltip="text"
+    ggplotly(ggplot(data=fda,aes(x=Patent_Expire_Year))+
+               geom_freqpoly(aes(colour=Type))+
+               labs(title="Upcoming Patent expiries",x="Year",y="# of Patents",colour="Type")
+             
     )
   })
   # Plot the Product and amount
-#  output$plot3 <- renderPlotly({
-#    mdrp=swInput()
-#    ggplotly(ggplot(data=mdrp,aes(x=Product.Name,y=sum(Amount),colour=Quarter))+
-#               geom_col()+
-#               theme(axis.text.x = element_text(angle = 60, hjust = 1,size=5)) +
-#               labs(title="Total Amount Reimbursed by Year",x="Product",y="Amount",colour="Quarter")
-#    )
-#  })
+  output$plot3 <- renderPlotly({
+    mdrp=swInput()
+    ggplotly(ggplot(data=mdrp,aes(x=Route,colour=TE_Code))+
+               geom_bar()+ coord_flip()+
+               labs(title="# Drugs by Administration route by Therapeutic Equivalent",x="Administration Route",y="# of Products",colour="Thearpeutic Equivalent")
+    )
+  })
   # Data table 
   output$table <- renderDataTable(fda)
   # Download function
